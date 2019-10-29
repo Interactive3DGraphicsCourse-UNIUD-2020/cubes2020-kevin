@@ -19,7 +19,11 @@
 		<script src="lib/three.min.js"></script>
 		<script src="lib/stats.min.js"></script>
 		<script src="lib/Coordinates.js"></script>
-		<script src="lib/OrbitControls.js"></script>
+        <script src="lib/OrbitControls.js"></script>
+        
+        <script src="js/HeightMap.js"></script>
+        <script src="js/HeightMapReader.js"></script>
+        <script src="js/Grid.js"></script>
 	</head>
 	<body>
 		
@@ -50,7 +54,7 @@
 			cube.castShadow = true;
 			cube.receiveShadow = true;
 			
-			scene.add( cube );
+			//scene.add( cube );
 
 			hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
 			hemiLight.color.setHSL( 0.6, 1, 0.6 );
@@ -68,7 +72,7 @@
 			dirLight.shadow.mapSize.height = 1024;
 
 
-			// GROUND
+			// Ground
 			var groundGeo = new THREE.PlaneBufferGeometry( 10000, 10000 );
 			var groundMat = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0x050505 } );
 			groundMat.color.setHSL( 0.095, 1, 0.75 );
@@ -84,12 +88,31 @@
 			document.body.appendChild( stats.domElement );
 			
 			// uncomment if you need to draw coordinate axes when building the scene
-			//Coordinates.drawAllAxes();
+			Coordinates.drawAllAxes();
 			
 			controls = new THREE.OrbitControls( camera );
 			controls.addEventListener( 'change', Render );
-			
-			
+            
+            var heightMapReader = new HeightMapReader();
+
+            /*
+            heightMapReader.readDataFromSrc("textures/heightmap2.png",0.1, (data) => {
+                console.log(data);                
+            });
+            */
+
+            var grid = new Grid2D(10, 10);
+            grid.layoutElements((i,j) => {
+                var position = new THREE.Vector3(0,0,0);
+                position.x += i;
+                position.z += j;
+                return position;
+            });
+            grid.updateElements((i, j, object) => {
+                object.position.set(object.position.x, 0 ,object.position.z);
+            });   
+            scene.add(grid);
+
 		}
 		
 		function Update() {
