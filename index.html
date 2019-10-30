@@ -20,16 +20,24 @@
 		<script src="lib/stats.min.js"></script>
 		<script src="lib/Coordinates.js"></script>
         <script src="lib/OrbitControls.js"></script>
-        
+		<script src="lib/dat.gui.min.js"></script>
+		
+
+		<script src="js/Generator.js"></script>
+		<script src="js/HeightDisplacementGenerator.js"></script>
+		<script src="js/WaveDisplacementGenerator.js"></script>
         <script src="js/HeightMap.js"></script>
-        <script src="js/HeightMapReader.js"></script>
-        <script src="js/Grid.js"></script>
+		<script src="js/HeightMapReader.js"></script>
+		<script src="js/Layout.js"></script>
+		<script src="js/Grid2DLayout.js"></script>
 	</head>
 	<body>
 		
 		<script>
 		
 		var scene, camera, renderer, controls, stats;
+		var grid;
+		var props;
 		
 		function Start() {
 			scene = new THREE.Scene();
@@ -46,15 +54,6 @@
 			
 			camera.position.set(2,2,2);
 			camera.lookAt( new THREE.Vector3(0,0,0));
-			
-			var geometry = new THREE.BoxGeometry(1,1,1);
-			var texture = THREE.ImageUtils.loadTexture('textures/11635.jpg');
-			var material = new THREE.MeshPhongMaterial( { map: texture } );
-			var cube = new THREE.Mesh( geometry, material );
-			cube.castShadow = true;
-			cube.receiveShadow = true;
-			
-			//scene.add( cube );
 
 			hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
 			hemiLight.color.setHSL( 0.6, 1, 0.6 );
@@ -79,7 +78,7 @@
 			var ground = new THREE.Mesh( groundGeo, groundMat );
 			ground.position.y = -0.5;
 			ground.rotation.x = -Math.PI/2;
-			scene.add( ground );
+			//scene.add( ground );
 			ground.receiveShadow = true;
 			
 			stats = new Stats();
@@ -95,32 +94,68 @@
             
             var heightMapReader = new HeightMapReader();
 
-            /*
-            heightMapReader.readDataFromSrc("textures/heightmap2.png",0.1, (data) => {
-                console.log(data);                
-            });
-            */
+            
+            heightMapReader.readDataFromSrc("textures/heightmap2.png", (map) => {
+				                
+				grid = new Grid2DLayout(map.width, map.height);
+				var geometry = new THREE.BoxGeometry(1,1,1);
+				var texture = THREE.ImageUtils.loadTexture('textures/11635.jpg');
+				var material = new THREE.MeshPhongMaterial( { map: texture } );
+				
+				grid.addElements((i, j) => {
+					var cube = new THREE.Mesh( geometry, material );
+					cube.castShadow = true;
+					cube.receiveShadow = true;
+			
+					return cube;
+				});
 
-            var grid = new Grid2D(10, 10);
-            grid.layoutElements((i,j) => {
-                var position = new THREE.Vector3(0,0,0);
-                position.x += i;
-                position.z += j;
-                return position;
-            });
-            grid.updateElements((i, j, object) => {
-                object.position.set(object.position.x, 0 ,object.position.z);
-            });   
-            scene.add(grid);
+				grid.layoutElements();
+				grid.displayElements();
 
+				var generator = new HeightDisplacementGenerator(map);
+
+				grid.updateElements((i, j, object) => {
+					var yDisplacement = Math.round(generator.displacementFor(i,j));
+					object.position.set(object.position.x, yDisplacement ,object.position.z);
+				});
+				
+				scene.add(grid);
+			
+			});
+
+			var Properties = function(){
+				this.spacingRows = 1;
+				this.spacingColumns = 1;
+				this.waveDirection = 0;
+			}
+
+			props = new Properties();
+			var gui = new dat.GUI();
+			gui.add(props, 'spacingRows', 1, 5);
+			gui.add(props, 'spacingColumns', 1, 5);
+			gui.add(props, 'waveDirection', 0, 90);
 		}
 		
 		function Update() {
 			requestAnimationFrame( Update );
+			
+			/*
+			var direction = this.props.waveDirection * Math.PI / 180;
+			var waveGen = new WaveDisplacementGenerator(direction,1,1);
+
+			grid.updateElements((i, j, object) => {
+				var yDisplacement = waveGen.displacementFor(i,j,0);
+				object.position.set(object.position.x, yDisplacement ,object.position.z);
+			});
+			*/
+				
+
 			controls.update();  
 			stats.update();
 			Render();
 		}
+
 		
 		function Render() {
 			

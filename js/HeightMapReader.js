@@ -8,9 +8,8 @@ class HeightMapReader{
     constructor(){}
 
     //Read Image data and return an HeightMap
-    readDataFromImage(image, scale){
-        if (scale == undefined) scale = 1;
-
+    //returns data in [-1,1] range
+    readDataFromImage(image){
         var canvas = document.createElement('canvas');
         canvas.width = image.width;
         canvas.height = image.height;
@@ -28,19 +27,20 @@ class HeightMapReader{
         var j=0;
         for (let i = 0; i < pixel_data.length; i+=4) {
             var all = pixel_data[i] + pixel_data[i+1] + pixel_data[i+2]; //Read R G B values and sum
-            data[j++] = scale*all/3; //Average the 3 values and scale
+            var normalizedHeight = (all/3 - 0) * (1 - -1) / (255 - 0) + -1;
+            data[j++] = normalizedHeight //Average the 3 values and scale
             
         }
 
-        return new HeightMap(data);
+        return new HeightMap(data, image.width, image.height);
     };
 
     //Loads image from src string and returns an HeightMap
-    readDataFromSrc(src, scale, callback){
+    readDataFromSrc(src, callback){
         var image = new Image();
         image.onload = function(){
             var reader = new HeightMapReader();
-            var data = reader.readDataFromImage(image, scale);
+            var data = reader.readDataFromImage(image);
             return callback(data);
         }
         image.src = src;
