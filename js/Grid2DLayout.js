@@ -15,13 +15,6 @@ class Grid2DLayout extends Layout{
             this.objects[row] = new Array(columns);
         } 
 
-        //Grid size is the distance from the leftest element center 
-        //to the rightest element center (for the width)
-        this.innerGridSize = {
-            width: 0,
-            height: 0
-        }
-
         this.spacing = {
             rows: 1,
             columns: 1
@@ -29,22 +22,10 @@ class Grid2DLayout extends Layout{
 
     }
 
-    //Computes the inner grid size,
-    //the distance from the leftest element center 
-    //to the rightest element center (for the width)
-    //Call computeInnerGridSize to make sure that the 
-    //innerGridSize is initialized
-    computeInnerGridSize(){
-        var maxX, maxY, minX, minY;
-        for(let i=0; i < this.rows; i++){
-            for(let j=0; j< this.columns; j++){
-                var object = this.objects[i][j]; 
-            }
-        }
-    }
-
-    updateSpacing(spacing){
-        this.spacing = spacing;
+    //Set the rows and columns spacing and updates the grid
+    setSpacing(rows, columns){
+        this.spacing.rows = rows;
+        this.spacing.columns = columns;
         this.layoutElements();
     }
 

@@ -18,7 +18,7 @@ class WaveDisplacementGenerator extends Generator{
 
     //Returns the y displacement for a wave at position (i,j) and a time
     displacementFor(i, j, time){
-        return Math.sin((i*(Math.PI/2-this.direction)+j*this.direction) * this.frequency) * this.amplitude;
+        return Math.sin((time + (i*(Math.PI/2-this.direction)+j*this.direction)) * this.frequency) * this.amplitude;
     }
 
     /*
