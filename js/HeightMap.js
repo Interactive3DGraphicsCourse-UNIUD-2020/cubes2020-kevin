@@ -9,11 +9,15 @@ class HeightMap{
         this.height = height;
     }
 
+    //Returns the height value for position (i,j)
+    //Never returns a value out of the interval (-1,1)
+    //clamps if necessary
     heightForPosition(i, j){
-        //If asked to return an out of bounds value return 0
+        //If asked to return an out of bounds value return 0 the midlevel
         if(i < 0 || i > this.height) return 0;
         if(j < 0 || j > this.width) return 0;
-        return this.data[this.width * i + j];
+        var value = this.data[this.width * i + j]; 
+        return Math.max(Math.min(value, 1), -1);
     }
 
     //Returns a canvas with the image 

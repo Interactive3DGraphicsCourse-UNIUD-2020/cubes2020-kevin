@@ -96,24 +96,15 @@
 		}
 
 		function createTerrain(){
-			//Directions X and Y with respect to the terrain
-			var directionX = 0 * Math.PI/180;
-			var directionY = (directionX+90) * Math.PI/180;
-			waveGeneratorX = new WaveDisplacementGenerator(directionX, 0.5, 0.5);
-			waveGeneratorY = new WaveDisplacementGenerator(directionY, 0.9, 0.5);
-			seaGenerator = new MixGenerator(waveGeneratorX, waveGeneratorY,
-				(height1, height2) => {
-					return height1+height2;
-				});
 
 			var heightMapReader = new HeightMapReader();	
 			heightMapReader.readDataFromSrc("textures/heightmap2.png", (map) => {
 
 				terrain = new Grid2DLayout(map.width, map.height);
-				let geometry = new THREE.BoxGeometry(1, 1, 1);
+				let geometry = new THREE.BoxBufferGeometry(1, 1, 1);
 
 				terrain.addElements((i, j) => {
-					let material = new THREE.MeshPhongMaterial({ map: greenTxt });
+					let material = new THREE.MeshLambertMaterial({ map: greenTxt });
 					var cube = new THREE.Mesh(geometry, material);
 					
 					return cube;
@@ -124,6 +115,15 @@
 
 				heightGenerator = new HeightDisplacementGenerator(map);
 				generators.push(heightGenerator);
+				
+				wavePlusHeightGenerator = new MixGenerator(
+					heightGenerator,
+					waveGeneratorX,
+					(displacement1, displacement2, time) => {
+						return displacement1 + displacement2;
+					}
+				);
+				generators.push(wavePlusHeightGenerator);
 				updateGenerators();
 				
 				terrain.updateElements((i, j, object) => {
@@ -187,27 +187,26 @@
 			requestAnimationFrame(Update);
 
 			var deltaTime = Date.now() - startTime;
-			var deltaTimeLastChange = Date.now() - lastGeneratorChange;
 			var deltaTimeTextureUpdate = Date.now() - lastTextureUpdate;
 
 			if (terrain) {
 
 				var previousGenerator = generatorHistory[generatorHistory.length-2];
 				var currentGenerator = generatorHistory[generatorHistory.length-1];
-				var factor = deltaTimeLastChange/transitionDuration;
-				factor = Math.max(Math.min(factor, 1), 0);
-					
+				
+				var interpolator = new LinearInterpolator(lastGeneratorChange, transitionDuration);
+
 				terrain.updateElements((i, j, object) => {
 					var value1 = previousGenerator.displacementFor(i,j,deltaTime/1000);
 					var value2 = currentGenerator.displacementFor(i,j,deltaTime/1000);
-					var displacement = factor*value2 + (1-factor)*value1;
+					var displacement = interpolator.between(value1, value2, Date.now());
 					object.position.set(object.position.x, displacement, object.position.z);
 					//Change texture based on displacement
 					if(deltaTimeTextureUpdate < textureUpdateInterval) return ;
 					var txt = object.material.map;
-					if(displacement > -0.5 && displacement < 0.5) txt = greenTxt;
-					if(displacement < -0.5) txt = brownTxt;
-					if(displacement >  0.5) txt = whiteTxt;
+					if(displacement > -0.7 && displacement < 0.7) txt = greenTxt;
+					if(displacement < -0.7) txt = brownTxt;
+					if(displacement >  0.7) txt = whiteTxt;
 					if(txt != object.material.map){
 						object.material.map = txt;
 						object.material.map.needsUpdate = true;
@@ -248,6 +247,18 @@
 		const textureUpdateInterval = 1000;
 
 		Start();
+
+		//Directions X and Y with respect to the terrain
+		var directionX = 0 * Math.PI/180;
+		var directionY = (directionX+90) * Math.PI/180;
+		waveGeneratorX = new WaveDisplacementGenerator(directionX, 0.5, 0.5);
+		waveGeneratorY = new WaveDisplacementGenerator(directionY, 0.9, 0.5);
+		seaGenerator = new MixGenerator(waveGeneratorX, waveGeneratorY,
+			(height1, height2) => {
+				return height1+height2;
+			});
+		var flatGenerator = new ConstantDisplacementGenerator(0);
+		
 		createWorld();
 		//Textures from https://www.kenney.nl/assets/voxel-pack
 		
@@ -255,7 +266,6 @@
 		var greenTxt = new THREE.TextureLoader().load('./textures/cotton_green.png');
 		var whiteTxt = new THREE.TextureLoader().load('./textures/snow.png');
 
-		var flatGenerator = new ConstantDisplacementGenerator(0);
 		//Add to this array and call updateGenerators() to update
 		//the UI
 		generators = [
@@ -285,7 +295,7 @@
 				var canvases = [];
 
 				generators.forEach((generator) => {
-					let canvas = generator.heightMap(128,128).image();
+					let canvas = generator.heightMap(60,60).image();
 					canvas.id     = "cv";
 					canvas.class  = 'controls-button';
 					canvas.style.width  = '128px';
